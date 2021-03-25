@@ -15,6 +15,15 @@ public:
 
 	}
 	~MyString() { if(p) delete [] p; }
+	MyString(const MyString & x) {
+		if (x.p)
+        {
+			p = new char[strlen(x.p) + 1];
+			strcpy(p, x.p);
+		}
+		else
+			p = NULL;
+	}
     MyString & operator = (const MyString &x)
     {
         if (this == &x)
