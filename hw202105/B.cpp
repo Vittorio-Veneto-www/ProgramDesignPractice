@@ -1,37 +1,39 @@
 #include <cstdlib>
 #include <iostream>
+#include <string>
+#include <algorithm>
 using namespace std;
-int strlen(const char * s) 
-{	int i = 0;
-	for(; s[i]; ++i);
-	return i;
-}
-void strcpy(char * d,const char * s)
-{
-	int i = 0;
-	for( i = 0; s[i]; ++i)
-		d[i] = s[i];
-	d[i] = 0;
-		
-}
-int strcmp(const char * s1,const char * s2)
-{
-	for(int i = 0; s1[i] && s2[i] ; ++i) {
-		if( s1[i] < s2[i] )
-			return -1;
-		else if( s1[i] > s2[i])
-			return 1;
-	}
-	return 0;
-}
-void strcat(char * d,const char * s)
-{
-	int len = strlen(d);
-	strcpy(d+len,s);
-}
-class MyString
+class MyString:public string
 {
     char *s;
+    int strlen(const char * s) 
+    {	int i = 0;
+        for(; s[i]; ++i);
+        return i;
+    }
+    void strcpy(char * d,const char * s)
+    {
+        int i = 0;
+        for( i = 0; s[i]; ++i)
+            d[i] = s[i];
+        d[i] = 0;
+            
+    }
+    int strcmp(const char * s1,const char * s2)
+    {
+        for(int i = 0; s1[i] && s2[i] ; ++i) {
+            if( s1[i] < s2[i] )
+                return -1;
+            else if( s1[i] > s2[i])
+                return 1;
+        }
+        return 0;
+    }
+    void strcat(char * d,const char * s)
+    {
+        int len = strlen(d);
+        strcpy(d+len,s);
+    }
     public:
         MyString(const char *x)
         {
@@ -108,7 +110,6 @@ class MyString
             ch = new char[y + 1];
             for (int i = 0; i < y; i++)
                 ch[i] = s[x + i];
-            ch[y] = '\0';
             MyString tmp(ch);
             delete [] ch;
             return tmp;
