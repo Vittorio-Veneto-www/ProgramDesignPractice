@@ -31,7 +31,7 @@ void strcat(char * d,const char * s)
 }
 class MyString
 {
-    char *s;
+    char *s = NULL;
     public:
         MyString(const char *x)
         {
@@ -49,7 +49,8 @@ class MyString
         }
         MyString(const MyString &x)
         {
-            delete [] s;
+            if (s)
+                delete [] s;
             s = new char[strlen(x.s) + 1];
             strcpy(s, x.s);
         }
@@ -60,6 +61,8 @@ class MyString
         }
         MyString & operator= (const MyString &x)
         {
+            if (this == &x)
+                return *this;
             delete [] s;
             s = new char[strlen(x.s) + 1];
             strcpy(s, x.s);
@@ -142,6 +145,7 @@ int main()
 	s2 = s1;
 	s1 = "ijkl-";
 	s1[2] = 'A' ;
+    s1 = s1;
 	cout << "7. " << s2 << endl;
 	cout << "8. " << s1 << endl;
 	s1 += "mnop";
