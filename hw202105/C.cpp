@@ -167,10 +167,10 @@ class HQ:public commonProperties
             if (stop)
                 return 0;
             for (int i = 0; i < warriorType; i++)
-                if (strength >= typeStrength[(currentWarriorType + i) % 5])
+                if (strength >= typeStrength[mapWarriorType((currentWarriorType + i) % 5)])
                 {
                     currentWarriorType = (currentWarriorType + i) % 5;
-                    int mappedWarriorType = warriorTypeMap[getType()][currentWarriorType];
+                    int mappedWarriorType = mapWarriorType(currentWarriorType);
                     strength -= typeStrength[mappedWarriorType];
                     currentWarrior = new warrior(mappedWarriorType, warriorCount + 1, typeStrength[mappedWarriorType], strength);
                     warriors[warriorCount] = currentWarrior;
@@ -183,6 +183,11 @@ class HQ:public commonProperties
             printf("%03d %s headquarter stops making warriors\n", warriorCount, getName());
             stop = 1;
             return 0;
+        }
+
+        int mapWarriorType(int currentWarriorType)
+        {
+            return warriorTypeMap[getType()][currentWarriorType];
         }
 };
 
