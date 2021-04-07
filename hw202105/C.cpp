@@ -13,14 +13,16 @@
 
 class commonProperties
 {
-    int type;
-    const char *name;
+    protected:
+        int type;
+        const char *name;
     public:
-        commonProperties(const int _type, const char _name[][maxNameLen + 1])
-        {
-            type = _type;
-            name = _name[_type];
-        }
+        commonProperties(const int type, const char name[][maxNameLen + 1]):
+            type(type),
+            name(name[type])
+        {}
+
+        ~commonProperties() {}
 
         int getType()
         {
@@ -35,29 +37,31 @@ class commonProperties
 
 class weapon:public commonProperties
 {
-    static constexpr char typeName[weaponType][maxNameLen + 1] = {"sword", "bomb", "arrow"};
-    int attack;
+    protected:
+        static constexpr char typeName[weaponType][maxNameLen + 1] = {"sword", "bomb", "arrow"};
+        int attack;
     public:
-        weapon(const int _type, const int _attack = 0):commonProperties(_type, typeName)
-        {
-            attack = _attack;
-        }
+        weapon(const int type, const int attack = 0):
+            attack(attack),
+            commonProperties(type, typeName)
+        {}
 
-        ~weapon()
-        {
-        }
+        virtual ~weapon() {}
 };
 
 class warrior:public commonProperties
 {
-    static constexpr char typeName[warriorType][maxNameLen + 1] = {"dragon", "ninja", "iceman", "lion", "wolf"};
-    int id, strength, loyalty = -1, weaponCount = 0;
-    double morale = -1;
-    weapon *currentWeapon, *weapons[maxWeapons];
+    protected:
+        static constexpr char typeName[warriorType][maxNameLen + 1] = {"dragon", "ninja", "iceman", "lion", "wolf"};
+        int id, strength, loyalty = -1, weaponCount = 0;
+        double morale = -1;
+        weapon *currentWeapon, *weapons[maxWeapons];
     public:
-        warrior(const int _type, const int _id, const int _strength, const int HQStrength):commonProperties(_type, typeName)
+        warrior(const int type, const int id, const int strength, const int HQStrength):
+            id(id),
+            strength(strength),
+            commonProperties(type, typeName)
         {
-            id = _id, strength = _strength;
             switch (getType())
             {
                 case 0:
@@ -83,7 +87,7 @@ class warrior:public commonProperties
             }
         }
 
-        void printStatus()
+        virtual void printStatus()
         {
             int mark = 0;
             if (weaponCount)
@@ -116,7 +120,7 @@ class warrior:public commonProperties
                 printf("\n");
         }
 
-        ~warrior()
+        virtual ~warrior()
         {
             for (int i = 0; i < weaponCount; i++)
                 delete weapons[i];
@@ -145,18 +149,19 @@ class warrior:public commonProperties
 
 class HQ:public commonProperties
 {
-    static constexpr char typeName[HQType][maxNameLen + 1] = {"red", "blue"};
-    static constexpr int warriorTypeMap[HQType][warriorType] = {{2, 3, 4, 1, 0}, {3, 0, 1, 2, 4}};
-    int stop = 0, strength, warriorCount = 0, currentWarriorType = 0, warriorTypeCount[warriorType] = {0};
-    warrior *currentWarrior, *warriors[maxWarriors];
+    protected:
+        static constexpr char typeName[HQType][maxNameLen + 1] = {"red", "blue"};
+        static constexpr int warriorTypeMap[HQType][warriorType] = {{2, 3, 4, 1, 0}, {3, 0, 1, 2, 4}};
+        int stop = 0, strength, warriorCount = 0, currentWarriorType = 0, warriorTypeCount[warriorType] = {0};
+        warrior *currentWarrior, *warriors[maxWarriors];
     public:
         static int typeStrength[warriorType];
-        HQ(int _type, int _strength):commonProperties(_type, typeName)
-        {
-            strength = _strength;
-        }
+        HQ(int type, int strength):
+            strength(strength),
+            commonProperties(type, typeName)
+        {}
 
-        ~HQ()
+        virtual ~HQ()
         {
             for (int i = 0; i < warriorCount; i++)
                 delete warriors[i];
