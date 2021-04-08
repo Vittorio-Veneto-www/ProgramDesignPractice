@@ -543,8 +543,6 @@ int main()
 {
 	int caseCnt, m, t;
     warrior *w1, *w2;
-    freopen("x.in", "r", stdin);
-    freopen("x.out", "w", stdout);
     scanf("%d", &caseCnt);
     for (int i = 0; i < caseCnt; i++)
     {
@@ -654,6 +652,4 @@ int main()
             hour++;
         }
     }
-    fclose(stdin);
-    fclose(stdout);
 }
