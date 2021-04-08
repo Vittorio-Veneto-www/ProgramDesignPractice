@@ -11,8 +11,20 @@
 #define warriorType 5
 #define weaponType 3
 
-int k, n, hour;
-//constexpr char typeName[HQType][maxNameLen + 1] = {"red", "blue"};
+int k, n, hour, flag;
+
+class commonProperties;
+class weapon;
+class sword;
+class bomb;
+class arrow;
+class warrior;
+class dragon;
+class ninja;
+class iceman;
+class lion;
+class wolf;
+class HQ;
 
 class commonProperties
 {
@@ -20,29 +32,29 @@ class commonProperties
         const int type;
         const char *name;
     public:
-        commonProperties(const int type, const char name[maxNameLen + 1]):
-            type(type),
-            name(name)
-        {}
-
-        ~commonProperties() {}
-
-        int getType()
-        {
-            return type;
-        }
-
-        const char * getName()
-        {
-            return name;
-        }
+        commonProperties(const int type, const char name[maxNameLen + 1]);
+        ~commonProperties();
+        int getType();
+        const char* getName();
 };
 
-class weapon;
-class warrior;
-class HQ;
+commonProperties::commonProperties(const int type, const char name[maxNameLen + 1]):
+    type(type),
+    name(name)
+{}
 
+commonProperties::~commonProperties()
+{}
 
+int commonProperties::getType()
+{
+    return type;
+}
+
+const char* commonProperties::getName()
+{
+    return name;
+}
 
 class weapon:public commonProperties
 {
@@ -55,7 +67,7 @@ class weapon:public commonProperties
         {}
 
         virtual ~weapon() {}
-        virtual void attack(warrior *attacker, warrior *defender) {}
+        virtual void attack(warrior *attacker, warrior *defender) = 0;
         virtual int isDestroyed() = 0;
         friend int cmp1(weapon *x, weapon *y);
         friend int cmp2(weapon *x, weapon *y);
@@ -113,40 +125,59 @@ class HQ:public commonProperties
         virtual ~HQ();
         void produce();
         int mapWarriorType(int currentWarriorType);
+        warrior* locateWarrior(int location);
+        void deleteWarrior(int location);
 };
 
 class warrior:public commonProperties
 {
     public:
-        int location, id, element, force, loyalty = -1, weaponCount = 0;
+        int location, id, element, force, loyalty = -1, weaponCount = 0, lastMove = -1;
         char info[100];
         weapon *currentWeapon, *weapons[maxWeapons];
         HQ *belong;
     public:
         static int typeElement[warriorType], typeForce[warriorType];
-        warrior(const int type, const int location, const int id, HQ *belong, const char *typeName):
-            location(location),
+        warrior(const int type, const int id, HQ *belong, const char *typeName):
             id(id),
             belong(belong),
             element(typeElement[type]),
             force(typeForce[type]),
             commonProperties(type, typeName)
         {
+            location = (belong->getType() == 0) ? 0 : n + 1;
             sprintf(info, "%s %s %d", belong->getName(), typeName, id);
         }
 
         virtual ~warrior()
         {
-            //printf("%s\n", info);
             for (int i = 0; i < weaponCount; i++)
                 delete weapons[i];
         }
 
-        virtual void advance() {}
+        virtual void advance()
+        {
+            if (lastMove == hour)
+                return;
+            lastMove = hour;
+            location += (belong->getType() == 0) ? 1 : -1;
+        }
 
         void printLocation()
         {
-            printf("%03d:10 %s %s %d marched to city %d with %d elements and force %d\n", hour, belong->getName(), getName(), id, location, element, force);
+            if (location == 0)
+            {
+                printf("%03d:10 %s reached red headquarter with %d elements and force %d\n", hour, info, element, force),
+                 flag = 1, printf("%03d:10 red headquarter was taken\n", hour);
+                return;
+            }
+            if (location == n + 1)
+            {
+                printf("%03d:10 %s reached blue headquarter with %d elements and force %d\n", hour, info, element, force),
+                 flag = 1, printf("%03d:10 blue headquarter was taken\n", hour);
+                return;
+            }
+            printf("%03d:10 %s marched to city %d with %d elements and force %d\n", hour, info, location, element, force);
         }
 
         void printStatus()
@@ -154,27 +185,7 @@ class warrior:public commonProperties
             int cnt[weaponType] = {0};
             for (int i = 0; i < weaponCount; i++)
                 cnt[weapons[i]->getType()]++;
-            printf("%03d:55 %s %s %d has %d sword %d bomb %d arrow and %d elements\n", hour, belong->getName(), getName(), id, cnt[0], cnt[1], cnt[2], element);
-        }
-
-        int getId()
-        {
-            return id;
-        }
-
-        int getElement()
-        {
-            return element;
-        }
-
-        int getForce()
-        {
-            return force;
-        }
-
-        int getLoyalty()
-        {
-            return loyalty;
+            printf("%03d:55 %s has %d sword %d bomb %d arrow and %d elements\n", hour, info, cnt[0], cnt[1], cnt[2], element);
         }
 
         void damage(int damageTaken)
@@ -220,10 +231,8 @@ class warrior:public commonProperties
             lastElement1 = self->element;
             lastElement2 = enemy->element;
             self->weapons[currentWeapon1]->attack(self, enemy);
-            //printf("%s %s %s %d %d\n", self->getName(), enemy->getName(), self->weapons[currentWeapon1]->getName(), self->weapons[currentWeapon1]->timeUsed, self->weapons[currentWeapon1]->isDestroyed());
             if (self->weapons[currentWeapon1]->isDestroyed())
             {
-                //printf("destroyed\n");
                 delete self->weapons[currentWeapon1];
                 for (int i = currentWeapon1; i < self->weaponCount - 1; i++)
                     self->weapons[i] = self->weapons[i + 1];
@@ -239,7 +248,6 @@ class warrior:public commonProperties
 
         void battle(warrior *enemy)
         {
-            //printf("%d %s %d %s %d\n", this->belong->getType(), this->getName(), this->weaponCount, enemy->getName(), enemy->weaponCount);
             std::sort(this->weapons, this->weapons + this->weaponCount, cmp1);
             std::sort(enemy->weapons, enemy->weapons + enemy->weaponCount, cmp1);
             int mark1 = 0, mark2 = 0, currentWeapon1 = -1, currentWeapon2 = -1;
@@ -274,7 +282,10 @@ class warrior:public commonProperties
             }
         }
 
-        virtual void flee() {}
+        virtual int flee()
+        {
+            return 0;
+        }
         virtual void cheer() {}
         virtual void stealWeapon(warrior *enemy) {}
 };
@@ -303,7 +314,7 @@ sword::sword():
 void sword::attack(warrior *attacker, warrior *defender)
 {
     timeUsed++;
-    defender->damage(attacker->getForce() * 2 / 10);
+    defender->damage(attacker->force * 2 / 10);
 }
 
 int sword::isDestroyed()
@@ -318,9 +329,9 @@ bomb::bomb():
 void bomb::attack(warrior *attacker, warrior *defender)
 {
     timeUsed++;
-    defender->damage(attacker->getForce() * 4 / 10);
+    defender->damage(attacker->force * 4 / 10);
     if (attacker->getType() != 1)
-        attacker->damage(attacker->getForce() * 4 / 10 / 2);
+        attacker->damage(attacker->force * 4 / 10 / 2);
 }
 
 int bomb::isDestroyed()
@@ -335,7 +346,7 @@ arrow::arrow():
 void arrow::attack(warrior *attacker, warrior *defender)
 {
     timeUsed++;
-    defender->damage(attacker->getForce() * 3 / 10);
+    defender->damage(attacker->force * 3 / 10);
 }
 
 int arrow::isDestroyed()
@@ -348,23 +359,15 @@ class dragon:public warrior
     protected:
         static constexpr char typeName[maxNameLen + 1] = "dragon";
     public:
-        dragon(const int location, const int id, HQ *belong):
-            warrior(0, location, id, belong, typeName)
+        dragon(const int id, HQ *belong):
+            warrior(0, id, belong, typeName)
         {
             newWeapon(id % 3);
         }
 
-        void advance()
-        {
-            if (belong->getType() == 0)
-                location += 1;
-            else
-                location -= 1;
-        }
-
         void cheer()
         {
-            printf("%03d:40 %s dragon %d yelled in city %d\n", hour, belong->getName(), id, location);
+            printf("%03d:40 %s yelled in city %d\n", hour, info, location);
         }
 };
 
@@ -373,19 +376,11 @@ class ninja:public warrior
     protected:
         static constexpr char typeName[maxNameLen + 1] = "ninja";
     public:
-        ninja(const int location, const int id, HQ *belong):
-            warrior(1, location, id, belong, typeName)
+        ninja(const int id, HQ *belong):
+            warrior(1, id, belong, typeName)
         {
             newWeapon(id % 3);
             newWeapon((id + 1) % 3);
-        }
-
-        void advance()
-        {
-            if (belong->getType() == 0)
-                location += 1;
-            else
-                location -= 1;
         }
 };
 
@@ -394,18 +389,15 @@ class iceman:public warrior
     protected:
         static constexpr char typeName[maxNameLen + 1] = "iceman";
     public:
-        iceman(const int location, const int id, HQ *belong):
-            warrior(2, location, id, belong, typeName)
+        iceman(const int id, HQ *belong):
+            warrior(2, id, belong, typeName)
         {
             newWeapon(id % 3);
         }
 
         void advance()
         {
-            if (belong->getType() == 0)
-                location += 1;
-            else
-                location -= 1;
+            warrior::advance();
             element -= element / 10;
         }
 };
@@ -415,31 +407,23 @@ class lion:public warrior
     protected:
         static constexpr char typeName[maxNameLen + 1] = "lion";
     public:
-        lion(const int location, const int id, HQ *belong):
-            warrior(3, location, id, belong, typeName)
+        lion(const int id, HQ *belong):
+            warrior(3, id, belong, typeName)
         {
             newWeapon(id % 3);
             loyalty = belong->element;
         }
 
-        void flee()
+        int flee()
         {
             if (loyalty <= 0)
-            {
-                if (belong->getType() == 0)
-                    printf(" red ");
-                else
-                    printf(" blue ");
-                printf("lion %d ran away\n", id);
-            }
+                printf("%03d:05 %s ran away\n", hour, info);
+            return loyalty <= 0;
         }
 
         void advance()
         {
-            if (belong->getType() == 0)
-                location += 1;
-            else
-                location -= 1;
+            warrior::advance();
             loyalty -= k;
         }
 };
@@ -449,8 +433,8 @@ class wolf:public warrior
     protected:
         static constexpr char typeName[maxNameLen + 1] = "wolf";
     public:
-        wolf(const int location, const int id, HQ *belong):
-            warrior(4, location, id, belong, typeName)
+        wolf(const int id, HQ *belong):
+            warrior(4, id, belong, typeName)
         {}
 
         void stealWeapon(warrior *enemy)
@@ -465,25 +449,15 @@ class wolf:public warrior
                 if (enemy->weapons[i]->getType() != enemy->weapons[0]->getType())
                     break;
             cnt = std::min(maxWeapons - this->weaponCount, i);
-            printf("%03d:35 %s wolf %d took %d %s from %s %s %d in city %d\n",
-             hour, belong->getName(), this->id, cnt, enemy->weapons[0]->getName(), enemy->belong->getName(), enemy->getName(), enemy->id, this->location);
+            printf("%03d:35 %s took %d %s from %s in city %d\n",
+             hour, this->info, cnt, enemy->weapons[0]->getName(), enemy->info, this->location);
             for (int i = 0; i < cnt; i++)
                 this->weapons[i + this->weaponCount] = enemy->weapons[i];
             for (int i = 0; i < enemy->weaponCount - cnt; i++)
                 enemy->weapons[i] = enemy->weapons[i + cnt];
             this->weaponCount += cnt;
             enemy->weaponCount -= cnt;
-            //printf("%d %d\n", this->weaponCount, enemy->weaponCount);
-            //printf("%s %s\n", this->weapons[0]->getName(), enemy->weapons[0]->getName());
             return;
-        }
-
-        void advance()
-        {
-            if (belong->getType() == 0)
-                location += 1;
-            else
-                location -= 1;
         }
 };
 
@@ -499,26 +473,48 @@ void HQ::produce()
         return;
     }
     element -= warrior::typeElement[mappedWarriorType];
-    int location;
-    if (getType() == 0)
-        location = 0;
-    else
-        location = n + 1;
     switch (mappedWarriorType)
     {
-        case 0:currentWarrior = new dragon(location, warriorCount + 1, this);break;
-        case 1:currentWarrior = new ninja(location, warriorCount + 1, this);break;
-        case 2:currentWarrior = new iceman(location, warriorCount + 1, this);break;
-        case 3:currentWarrior = new lion(location, warriorCount + 1, this);break;
-        case 4:currentWarrior = new wolf(location, warriorCount + 1, this);break;
+        case 0:currentWarrior = new dragon(warriorCount + 1, this);break;
+        case 1:currentWarrior = new ninja(warriorCount + 1, this);break;
+        case 2:currentWarrior = new iceman(warriorCount + 1, this);break;
+        case 3:currentWarrior = new lion(warriorCount + 1, this);break;
+        case 4:currentWarrior = new wolf(warriorCount + 1, this);break;
     }
     warriors[warriorCount] = currentWarrior;
-    printf("%03d:00 %s %s %d born\n", warriorCount, getName(), currentWarrior->getName(), currentWarrior->getId());
+    printf("%03d:00 %s %s %d born\n", hour, getName(), currentWarrior->getName(), currentWarrior->id);
     ++warriorTypeCount[mappedWarriorType];
     if (mappedWarriorType == 3)
         printf("Its loyalty is %d\n", currentWarrior->loyalty);
     warriorCount++;
     return;
+}
+
+warrior* HQ::locateWarrior(int location)
+{
+    if (type == 0)
+    {
+        for (int i = 0; i < warriorCount; i++)
+            if (warriors[i] && warriors[i]->location == location)
+                return warriors[i];
+    }
+    else
+    {
+        for (int i = warriorCount - 1; i >= 0; i--)
+            if (warriors[i] && warriors[i]->location == location)
+                return warriors[i];
+    }
+    return NULL;
+}
+
+void HQ::deleteWarrior(int location)
+{
+    for (int i = 0; i < warriorCount; i++)
+        if (warriors[i] && warriors[i]->location == location)
+        {
+            delete warriors[i];
+            warriors[i] = NULL;
+        }
 }
 
 constexpr char dragon::typeName[maxNameLen + 1], ninja::typeName[maxNameLen + 1], iceman::typeName[maxNameLen + 1], lion::typeName[maxNameLen + 1], wolf::typeName[maxNameLen + 1];
@@ -529,8 +525,9 @@ int warrior::typeElement[warriorType], warrior::typeForce[warriorType];
 int main()
 {
 	int caseCnt, m, t;
-    //freopen("x.in", "r", stdin);
-    //freopen("x.out", "w", stdout);
+    warrior *w1, *w2;
+    freopen("x.in", "r", stdin);
+    freopen("x.out", "w", stdout);
     scanf("%d", &caseCnt);
     for (int i = 0; i < caseCnt; i++)
     {
@@ -552,108 +549,76 @@ int main()
                 break;
             for (int i = 0; i <= n + 1; i++)
             {
-                for (int j = 0; j < x1.warriorCount; j++)
-                    if (x1.warriors[j] && x1.warriors[j]->location == i && x1.warriors[j]->getType() == 3 && x1.warriors[j]->loyalty <= 0)
-                    {
-                        printf("%03d:05 red lion %d ran away\n", hour, x1.warriors[j]->id);
-                        delete x1.warriors[j];
-                        x1.warriors[j] = NULL;
-                    }
-                for (int j = 0; j < x2.warriorCount; j++)
-                    if (x2.warriors[j] && x2.warriors[j]->location == i && x2.warriors[j]->getType() == 3 && x2.warriors[j]->loyalty <= 0)
-                    {
-                        printf("%03d:05 blue lion %d ran away\n", hour, x2.warriors[j]->id);
-                        delete x2.warriors[j];
-                        x2.warriors[j] = NULL;
-                    }
+                w1 = x1.locateWarrior(i);
+                if (w1 && w1->flee())
+                    x1.deleteWarrior(i);
+                w2 = x2.locateWarrior(i);
+                if (w2 && w2->flee())
+                    x2.deleteWarrior(i);
             }
             if (hour * 60 + 10 > t)
                 break;
-            int flag = 0, mark1[100000] = {0}, mark2[100000] = {0};
-            for (int j = 0; j < x2.warriorCount; j++)
-                if (x2.warriors[j] && x2.warriors[j]->location == 1 && !mark2[j])
-                    x2.warriors[j]->advance(), printf("%03d:10 blue %s %d reached red headquarter with %d elements and force %d\n",
-                     hour, x2.warriors[j]->getName(), x2.warriors[j]->id, x2.warriors[j]->element, x2.warriors[j]->force), flag = 1,
-                     printf("%03d:10 red headquarter was taken\n", hour), mark2[j] = 1;
+            flag = 0;
+            w2 = x2.locateWarrior(1);
+            if (w2 && w2->lastMove != hour)
+                w2->advance(), w2->printLocation();
             for (int i = 1; i <= n; i++)
             {
-                for (int j = 0; j < x1.warriorCount; j++)
-                    if (x1.warriors[j] && x1.warriors[j]->location == i - 1 && !mark1[j])
-                        x1.warriors[j]->advance(), printf("%03d:10 red %s %d marched to city %d with %d elements and force %d\n",
-                         hour, x1.warriors[j]->getName(), x1.warriors[j]->id, i, x1.warriors[j]->element, x1.warriors[j]->force), mark1[j] = 1;
-                for (int j = 0; j < x2.warriorCount; j++)
-                    if (x2.warriors[j] && x2.warriors[j]->location == i + 1 && !mark2[j])
-                        x2.warriors[j]->advance(), printf("%03d:10 blue %s %d marched to city %d with %d elements and force %d\n",
-                         hour, x2.warriors[j]->getName(), x2.warriors[j]->id, i, x2.warriors[j]->element, x2.warriors[j]->force), mark2[j] = 1;
+                w1 = x1.locateWarrior(i - 1);
+                if (w1 && w1->lastMove != hour)
+                    w1->advance(), w1->printLocation();
+                w2 = x2.locateWarrior(i + 1);
+                if (w2 && w2->lastMove != hour)
+                    w2->advance(), w2->printLocation();
             }
-            for (int j = 0; j < x1.warriorCount; j++)
-                if (x1.warriors[j] && x1.warriors[j]->location == n && !mark1[j])
-                    x1.warriors[j]->advance(), printf("%03d:10 red %s %d reached blue headquarter with %d elements and force %d\n",
-                     hour, x1.warriors[j]->getName(), x1.warriors[j]->id, x1.warriors[j]->element, x1.warriors[j]->force), flag = 1,
-                     printf("%03d:10 blue headquarter was taken\n", hour), mark1[j] = 1;
+            w1 = x1.locateWarrior(n);
+            if (w1 && w1->lastMove != hour)
+                w1->advance(), w1->printLocation();
             if (flag)
                 break;
             if (hour * 60 + 35 > t)
                 break;
             for (int i = 1; i <= n; i++)
             {
-                int j1 = -1, j2 = -1;
-                for (int j = 0; j < x1.warriorCount; j++)
-                    if (x1.warriors[j] && x1.warriors[j]->location == i)
-                        j1 = j;
-                for (int j = 0; j < x2.warriorCount; j++)
-                    if (x2.warriors[j] && x2.warriors[j]->location == i)
-                        j2 = j;
-                if (j1 != -1 && j2 != -1)
+                w1 = x1.locateWarrior(i);
+                w2 = x2.locateWarrior(i);
+                if (w1 && w2)
                 {
-                    if (x1.warriors[j1]->getType() == 4 && x2.warriors[j2]->getType() != 4)
-                        x1.warriors[j1]->stealWeapon(x2.warriors[j2]);
-                    if (x1.warriors[j1]->getType() != 4 && x2.warriors[j2]->getType() == 4)
-                        x2.warriors[j2]->stealWeapon(x1.warriors[j1]);
+                    if (w1->getType() == 4)
+                        w1->stealWeapon(w2);
+                    if (w2->getType() == 4)
+                        w2->stealWeapon(w1);
                 }
             }
             if (hour * 60 + 40 > t)
                 break;
             for (int i = 1; i <= n; i++)
             {
-                int j1 = -1, j2 = -1;
-                for (int j = 0; j < x1.warriorCount; j++)
-                    if (x1.warriors[j] && x1.warriors[j]->location == i)
-                        j1 = j;
-                for (int j = 0; j < x2.warriorCount; j++)
-                    if (x2.warriors[j] && x2.warriors[j]->location == i)
-                        j2 = j;
-                if (j1 != -1 && j2 != -1)
+                w1 = x1.locateWarrior(i);
+                w2 = x2.locateWarrior(i);
+                if (w1 && w2)
                 {
                     if (i & 1)
-                        x1.warriors[j1]->battle(x2.warriors[j2]);
+                        w1->battle(w2);
                     else
-                        x2.warriors[j2]->battle(x1.warriors[j1]);
-                    switch (x1.warriors[j1]->isDead() << 1 | x2.warriors[j2]->isDead())
+                        w2->battle(w1);
+                    switch (w1->isDead() << 1 | w2->isDead())
                     {
-                        case 0:printf("%03d:40 both %s and %s were alive in city %d\n", hour, x1.warriors[j1]->info, x2.warriors[j2]->info, i);break;
-                        case 1:printf("%03d:40 %s killed %s in city %d remaining %d elements\n", hour, x1.warriors[j1]->info, x2.warriors[j2]->info, i, x1.warriors[j1]->element);break;
-                        case 2:printf("%03d:40 %s killed %s in city %d remaining %d elements\n", hour, x2.warriors[j2]->info, x1.warriors[j1]->info, i, x2.warriors[j2]->element);break;
-                        case 3:printf("%03d:40 both %s and %s died in city %d\n", hour, x1.warriors[j1]->info, x2.warriors[j2]->info, i);break;
+                        case 0:printf("%03d:40 both %s and %s were alive in city %d\n", hour, w1->info, w2->info, i);break;
+                        case 1:printf("%03d:40 %s killed %s in city %d remaining %d elements\n", hour, w1->info, w2->info, i, w1->element);break;
+                        case 2:printf("%03d:40 %s killed %s in city %d remaining %d elements\n", hour, w2->info, w1->info, i, w2->element);break;
+                        case 3:printf("%03d:40 both %s and %s died in city %d\n", hour, w1->info, w2->info, i);break;
                     }
-                    if (x1.warriors[j1]->getType() == 0 && !x1.warriors[j1]->isDead())
-                        x1.warriors[j1]->cheer();
-                    if (x2.warriors[j2]->getType() == 0 && !x2.warriors[j2]->isDead())
-                        x2.warriors[j2]->cheer();
+                    if (w1->isDead())
+                        x1.deleteWarrior(i);
+                    else
+                        w1->cheer();
+                    if (w2->isDead())
+                        x2.deleteWarrior(i);
+                    else
+                        w2->cheer();
                 }
             }
-            for (int j = 0; j < x1.warriorCount; j++)
-                if (x1.warriors[j] && x1.warriors[j]->isDead())
-                {
-                    delete x1.warriors[j];
-                    x1.warriors[j] = NULL;
-                }
-            for (int j = 0; j < x2.warriorCount; j++)
-                if (x2.warriors[j] && x2.warriors[j]->isDead())
-                {
-                    delete x2.warriors[j];
-                    x2.warriors[j] = NULL;
-                }
             if (hour * 60 + 50 > t)
                 break;
             printf("%03d:50 %d elements in red headquarter\n", hour, x1.element);
@@ -662,16 +627,16 @@ int main()
                 break;
             for (int i = 1; i <= n; i++)
             {
-                for (int j = 0; j < x1.warriorCount; j++)
-                    if (x1.warriors[j] && x1.warriors[j]->location == i)
-                        x1.warriors[j]->printStatus();
-                for (int j = 0; j < x2.warriorCount; j++)
-                    if (x2.warriors[j] && x2.warriors[j]->location == i)
-                        x2.warriors[j]->printStatus();
+                w1 = x1.locateWarrior(i);
+                w2 = x2.locateWarrior(i);
+                if (w1)
+                    w1->printStatus();
+                if (w2)
+                    w2->printStatus();
             }
-            hour += 1;
+            hour++;
         }
     }
-    //fclose(stdin);
-    //fclose(stdout);
+    fclose(stdin);
+    fclose(stdout);
 }
