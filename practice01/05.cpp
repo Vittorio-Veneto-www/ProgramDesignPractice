@@ -18,8 +18,8 @@ class A
         }
         T sum()
         {
-            T tmp;
-            for (int i = 0; i < n; i++)
+            T tmp = arr[0];
+            for (int i = 1; i < n; i++)
                 tmp += arr[i];
             return tmp;
         }

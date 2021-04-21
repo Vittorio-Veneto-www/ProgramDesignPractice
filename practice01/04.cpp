@@ -2,8 +2,8 @@
 using namespace std;
 
 class A {
-    int val;
 public:
+    int val;
     A(int val): val(val) {}
     A(const A &x): val(x.val) {}
     A& operator+=(A x)
