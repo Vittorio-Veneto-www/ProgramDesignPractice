@@ -10,16 +10,15 @@ class TV_Drama{
 	int actor;
 	int story;
 	int acting_skill;
-    public:
-        TV_Drama(char* _name, int actor, int story, int acting_skill):
-            actor(actor), story(story), acting_skill(acting_skill)
-        {
-            strcpy(name, _name);
-        }
-        int operator<(const TV_Drama &a) const
-        {
-            return actor > a.actor;
-        }
+    TV_Drama(char* _name, int actor, int story, int acting_skill):
+        actor(actor), story(story), acting_skill(acting_skill)
+    {
+        strcpy(name, _name);
+    }
+    int operator<(const TV_Drama &a) const
+    {
+        return actor > a.actor;
+    }
 };
 class Printer_class{
     public:
