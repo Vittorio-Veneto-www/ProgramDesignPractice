@@ -6,7 +6,7 @@
 
 int main(void)
 {
-    std::multimap<int, int> map;
+    std::map<int, int> map;
     map.insert(std::make_pair(1000000000, 1));
     int n;
     scanf("%d", &n);
