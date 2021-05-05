@@ -11,10 +11,13 @@ public:
     Counter()
     {
         nLocalNumber = nGlobalNumber++;
+		if (nLocalNumber == 0)
+			nLocalNumber = 1;
     }
     Counter(int x)
     {
         nLocalNumber = x;
+        nGlobalNumber++;
     }
     Counter(const Counter &x)
     {
