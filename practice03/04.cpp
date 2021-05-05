@@ -6,7 +6,7 @@ using namespace std;
 template <class T>
 class Print
 {
-    int cnt, cur;
+    int cnt, cur = 0;
     public:
         Print(int cnt):cnt(cnt){}
         Print& operator+(T x)
