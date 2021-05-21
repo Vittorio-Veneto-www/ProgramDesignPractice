@@ -47,9 +47,9 @@ class CHugeInt {
                 x1 = a[i], a[i] = (x1 + r) % 10, r = (x1 + r) / 10;
             for (; i < x.len; i++)
                 a[i] = (x.a[i] + r) % 10, r = (x.a[i] + r) / 10;
+            len = std::max(len, x.len);
             if (r)
                 a[len++] = r;
-            len = std::max(len, x.len);
             return *this;
         }
         friend CHugeInt operator++(CHugeInt & x)
