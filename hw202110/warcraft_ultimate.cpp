@@ -20,66 +20,61 @@ typedef struct
     std::string info;
 } BattleInfo;
 
-std::vector<BattleInfo> battleInfo;
-
-int cmp(const BattleInfo &a, const BattleInfo &b)
-{
-    int x = a.hour * 60 + a.minute, y = b.hour * 60 + b.minute;
-    return (x < y) || (x == y && a.type < b.type);
-}
+std::vector<std::string> battleInfo;
 
 BattleInfo x;
 char temp[100];
 
-int k, n, hour, flag[2], r, cityElement[30], cityFlags[30], lastBattleResult[30];
+int k, n, hour, r, HQCaptured;
 
-class commonProperties;
-class warrior;
+class CommonProperties;
+class Warrior;
 class dragon;
 class ninja;
 class iceman;
 class lion;
 class wolf;
 class HQ;
+class City;
 
-class commonProperties
+class CommonProperties
 {
     protected:
         const int type;
         const char *name;
     public:
-        commonProperties(const int type, const char name[maxNameLen + 1]);
-        ~commonProperties();
+        CommonProperties(const int type, const char name[maxNameLen + 1]);
+        ~CommonProperties();
         int getType();
         const char* getName();
 };
-class warrior:public commonProperties
+class Warrior:public CommonProperties
 {
     public:
-        int location, id, element, force, loyalty = -1, weaponCount = 0, lastMove = -1, lastElement, weapons[3] = {0}, killedByBattle = 0;
+        int location, id, element, force, loyalty = -1, weaponCount = 0, lastMove = -1, lastElement, weapons[3] = {0};
         double morale = -1;
         char info[100];
         HQ *belong;
     public:
         static int typeElement[warriorType], typeForce[warriorType];
-        warrior(const int type, const int id, HQ *belong, const char *typeName);
+        Warrior(const int type, const int id, HQ *belong, const char *typeName);
         virtual void advance();
         void printLocation();
         void printStatus();
         void damage(int damageTaken);
         int isDead();
         void newWeapon(int wType);
-        void bomb(warrior *enemy);
-        void arrow(warrior *enemy);
+        void bomb(Warrior *enemy);
+        void arrow(Warrior *enemy);
         void swordWear();
-        void battle(warrior *enemy);
+        void battle(Warrior *enemy);
         int attack();
         int fightBack();
         virtual int flee();
         virtual void cheer();
-        virtual void getWeapon(warrior *enemy);
+        virtual void getWeapon(Warrior *enemy);
 };
-class dragon:public warrior
+class dragon:public Warrior
 {
     protected:
         static constexpr char typeName[maxNameLen + 1] = "dragon";
@@ -87,14 +82,14 @@ class dragon:public warrior
         dragon(const int id, HQ *belong);
         void cheer();
 };
-class ninja:public warrior
+class ninja:public Warrior
 {
     protected:
         static constexpr char typeName[maxNameLen + 1] = "ninja";
     public:
         ninja(const int id, HQ *belong);
 };
-class iceman:public warrior
+class iceman:public Warrior
 {
     protected:
         static constexpr char typeName[maxNameLen + 1] = "iceman";
@@ -103,7 +98,7 @@ class iceman:public warrior
         iceman(const int id, HQ *belong);
         void advance();
 };
-class lion:public warrior
+class lion:public Warrior
 {
     protected:
         static constexpr char typeName[maxNameLen + 1] = "lion";
@@ -111,88 +106,99 @@ class lion:public warrior
         lion(const int id, HQ *belong);
         int flee();
 };
-class wolf:public warrior
+class wolf:public Warrior
 {
     protected:
         static constexpr char typeName[maxNameLen + 1] = "wolf";
     public:
         wolf(const int id, HQ *belong);
-        void getWeapon(warrior *enemy);
+        void getWeapon(Warrior *enemy);
 };
-class HQ:public commonProperties
+class HQ:public CommonProperties
 {
     public:
         static constexpr char typeName[HQType][maxNameLen + 1] = {"red", "blue"};
         static constexpr int warriorTypeMap[HQType][warriorType] = {{2, 3, 4, 1, 0}, {3, 0, 1, 2, 4}};
         int stop = 0, element, warriorCount = 0, currentWarriorType = -1, collectedElements = 0, warriorTypeCount[warriorType] = {0};
-        warrior *currentWarrior, *warriors[maxWarriors];
-        std::vector<warrior*> winningWarriors;
+        Warrior *currentWarrior;
+        std::vector<Warrior*> winningWarriors;
     public:
         HQ(int type, int element);
         virtual ~HQ();
         void produce();
         int mapWarriorType(int currentWarriorType);
-        warrior* locateWarrior(int location);
+        Warrior* locateWarrior(int location);
         void deleteWarrior(int location);
 };
+class City
+{
+    public:
+        int id, element = 0, flag = 0, lastBattleResult = 0;
+        Warrior* warriors[2][2] = {{NULL, NULL}, {NULL, NULL}};
+        City(int id);
 
-commonProperties::commonProperties(const int type, const char name[maxNameLen + 1]):
+        static std::vector<City> cities;
+        static void MoveFinished();
+};
+
+CommonProperties::CommonProperties(const int type, const char name[maxNameLen + 1]):
     type(type),
     name(name)
 {}
 
-commonProperties::~commonProperties()
+CommonProperties::~CommonProperties()
 {}
 
-int commonProperties::getType()
+int CommonProperties::getType()
 {
     return type;
 }
 
-const char* commonProperties::getName()
+const char* CommonProperties::getName()
 {
     return name;
 }
 
-warrior::warrior(const int type, const int id, HQ *belong, const char *typeName):
+Warrior::Warrior(const int type, const int id, HQ *belong, const char *typeName):
     id(id),
     belong(belong),
     element(typeElement[type]),
     force(typeForce[type]),
-    commonProperties(type, typeName)
+    CommonProperties(type, typeName)
 {
     location = (belong->getType() == 0) ? 0 : n + 1;
     sprintf(info, "%s %s %d", belong->getName(), typeName, id);
 }
 
-void warrior::advance()
+void Warrior::advance()
 {
     if (lastMove == hour)
         return;
     lastMove = hour;
     location += (belong->getType() == 0) ? 1 : -1;
+    City::cities[location].warriors[1][belong->getType()] = this;
 }
 
-void warrior::printLocation()
+void Warrior::printLocation()
 {
     if (location == 0)
     {
         printf("%03d:10 %s reached red headquarter with %d elements and force %d\n", hour, info, element, force);
-        if (++flag[0] == 2)
-            printf("%03d:10 red headquarter was taken\n", hour);
+        if (City::cities[location].warriors[0][belong->getType()] != NULL)
+            HQCaptured = 1, printf("%03d:10 red headquarter was taken\n", hour);
         return;
     }
     if (location == n + 1)
     {
         printf("%03d:10 %s reached blue headquarter with %d elements and force %d\n", hour, info, element, force);
-        if (++flag[1] == 2)
-            printf("%03d:10 blue headquarter was taken\n", hour);
+        if (City::cities[location].warriors[0][belong->getType()] != NULL)
+            HQCaptured = 1, printf("%03d:10 blue headquarter was taken\n", hour);
         return;
     }
     printf("%03d:10 %s marched to city %d with %d elements and force %d\n", hour, info, location, element, force);
 }
 
-void warrior::printStatus()
+void Warrior::printStatus()
 {
     std::string weaponInfo = "";
     char temp[20];
@@ -222,19 +228,19 @@ void warrior::printStatus()
     printf("%03d:55 %s has %s\n", hour, info, weaponInfo.c_str());
 }
 
-void warrior::damage(int damageTaken)
+void Warrior::damage(int damageTaken)
 {
     element -= damageTaken;
     if (element < 0)
         element = 0;
 }
 
-int warrior::isDead()
+int Warrior::isDead()
 {
     return element <= 0;
 }
 
-void warrior::newWeapon(int wType)
+void Warrior::newWeapon(int wType)
 {
     switch (wType)
     {
@@ -244,7 +250,7 @@ void warrior::newWeapon(int wType)
     }
 }
 
-void warrior::bomb(warrior *enemy)
+void Warrior::bomb(Warrior *enemy)
 {
     if (this->isDead() || enemy->isDead())
         return;
@@ -271,7 +277,7 @@ void warrior::bomb(warrior *enemy)
         }
 }
 
-void warrior::arrow(warrior *enemy)
+void Warrior::arrow(Warrior *enemy)
 {
     if (weapons[2])
     {
@@ -284,68 +290,57 @@ void warrior::arrow(warrior *enemy)
     }
 }
 
-void warrior::swordWear()
+void Warrior::swordWear()
 {
     this->weapons[0] = this->weapons[0] * 8 / 10;
 }
 
-int warrior::attack()
+int Warrior::attack()
 {
     return this->force + this->weapons[0];
 }
 
-int warrior::fightBack()
+int Warrior::fightBack()
 {
     return this->force / 2 + this->weapons[0];
 }
 
-void winning(warrior* cheems, warrior* enemy)// r u winning son?
+void winning(Warrior* cheems, Warrior* enemy)// r u winning son?
 {
+    City & city = City::cities[cheems->location];
     if (enemy->getType() == 3)
         cheems->element += enemy->lastElement;
     cheems->getWeapon(enemy);
-    cheems->belong->collectedElements += cityElement[cheems->location];
-    x.hour = hour;
-    x.minute = 40;
-    x.type = 10;
-    sprintf(temp, "%03d:40 %s earned %d elements for his headquarter\n", hour, cheems->info, cityElement[cheems->location]);
-    x.info = temp;
-    battleInfo.push_back(x);
-    cityElement[cheems->location] = 0;
+    cheems->belong->collectedElements += city.element;
+    sprintf(temp, "%03d:40 %s earned %d elements for his headquarter\n", hour, cheems->info, city.element);
+    battleInfo.push_back(temp);
+    city.element = 0;
     cheems->belong->winningWarriors.push_back(cheems);
     if (cheems->belong->getType() == 0)
     {
-        if (lastBattleResult[cheems->location] == 1)
-            if (cityFlags[cheems->location] != 1)
+        if (city.lastBattleResult == 1)
+            if (city.flag != 1)
             {
-                cityFlags[cheems->location] = 1;
-                x.hour = hour;
-                x.minute = 40;
-                x.type = 11;
+                city.flag = 1;
                 sprintf(temp, "%03d:40 red flag raised in city %d\n", hour, cheems->location);
-                x.info = temp;
-                battleInfo.push_back(x);
+                battleInfo.push_back(temp);
             }
-        lastBattleResult[cheems->location] = 1;
+        city.lastBattleResult = 1;
     }
     else
     {
-        if (lastBattleResult[cheems->location] == 2)
-            if (cityFlags[cheems->location] != 2)
+        if (city.lastBattleResult == 2)
+            if (city.flag != 2)
             {
-                cityFlags[cheems->location] = 2;
-                x.hour = hour;
-                x.minute = 40;
-                x.type = 11;
+                city.flag = 2;
                 sprintf(temp, "%03d:40 blue flag raised in city %d\n", hour, cheems->location);
-                x.info = temp;
-                battleInfo.push_back(x);
+                battleInfo.push_back(temp);
             }
-        lastBattleResult[cheems->location] = 2;
+        city.lastBattleResult = 2;
     }
 }
 
-void warrior::battle(warrior *enemy)
+void Warrior::battle(Warrior *enemy)
 {
     this->lastElement = this->element;
     enemy->lastElement = enemy->element;
@@ -366,19 +361,12 @@ void warrior::battle(warrior *enemy)
     }
     enemy->damage(this->attack());
     this->swordWear();
-    x.hour = hour;
-    x.minute = 40;
-    x.type = 6;
     sprintf(temp, "%03d:40 %s attacked %s in city %d with %d elements and force %d\n", hour, this->info, enemy->info, enemy->location, this->element, this->force);
-    x.info = temp;
-    battleInfo.push_back(x);
+    battleInfo.push_back(temp);
     if (enemy->isDead())
     {
-        x.minute = 40;
-        x.type = 8;
         sprintf(temp, "%03d:40 %s was killed in city %d\n", hour, enemy->info, enemy->location);
-        x.info = temp;
-        battleInfo.push_back(x);
+        battleInfo.push_back(temp);
         this->morale += 0.2;
         this->cheer();
         winning(this, enemy);
@@ -388,18 +376,12 @@ void warrior::battle(warrior *enemy)
     {
         this->damage(enemy->fightBack());
         enemy->swordWear();
-        x.minute = 40;
-        x.type = 7;
         sprintf(temp, "%03d:40 %s fought back against %s in city %d\n", hour, enemy->info, this->info, this->location);
-        x.info = temp;
-        battleInfo.push_back(x);
+        battleInfo.push_back(temp);
         if (this->isDead())
         {
-            x.minute = 40;
-            x.type = 8;
             sprintf(temp, "%03d:40 %s was killed in city %d\n", hour, this->info, this->location);
-            x.info = temp;
-            battleInfo.push_back(x);
+            battleInfo.push_back(temp);
             enemy->morale += 0.2;
             winning(enemy, this);
             return;
@@ -410,18 +392,18 @@ void warrior::battle(warrior *enemy)
     this->cheer();
     this->loyalty -= k;
     enemy->loyalty -= k;
-    lastBattleResult[this->location] = 0;
+    City::cities[this->location].lastBattleResult = 0;
 }
 
-int warrior::flee()
+int Warrior::flee()
 {
     return 0;
 }
-void warrior::cheer(){}
-void warrior::getWeapon(warrior *enemy){}
+void Warrior::cheer(){}
+void Warrior::getWeapon(Warrior *enemy){}
 
 dragon::dragon(const int id, HQ *belong):
-    warrior(0, id, belong, typeName)
+    Warrior(0, id, belong, typeName)
 {
     newWeapon(id % 3);
     morale = (double)belong->element / typeElement[getType()];
@@ -431,23 +413,20 @@ void dragon::cheer()
 {
     if (morale > 0.8)
     {
-        x.minute = 40;
-        x.type = 9;
         sprintf(temp, "%03d:40 %s yelled in city %d\n", hour, info, location);
-        x.info = temp;
-        battleInfo.push_back(x);
+        battleInfo.push_back(temp);
     }
 }
 
 ninja::ninja(const int id, HQ *belong):
-    warrior(1, id, belong, typeName)
+    Warrior(1, id, belong, typeName)
 {
     newWeapon(id % 3);
     newWeapon((id + 1) % 3);
 }
 
 iceman::iceman(const int id, HQ *belong):
-    warrior(2, id, belong, typeName)
+    Warrior(2, id, belong, typeName)
 {
     newWeapon(id % 3);
 }
@@ -464,11 +443,11 @@ void iceman::advance()
         force += 20;
         step = 0;
     }
-    warrior::advance();
+    Warrior::advance();
 }
 
 lion::lion(const int id, HQ *belong):
-    warrior(3, id, belong, typeName)
+    Warrior(3, id, belong, typeName)
 {
     loyalty = belong->element;
 }
@@ -481,10 +460,10 @@ int lion::flee()
 }
 
 wolf::wolf(const int id, HQ *belong):
-    warrior(4, id, belong, typeName)
+    Warrior(4, id, belong, typeName)
 {}
 
-void wolf::getWeapon(warrior *enemy)
+void wolf::getWeapon(Warrior *enemy)
 {
     if (!isDead())
         for (int i = 0; i < 3; i++)
@@ -494,13 +473,14 @@ void wolf::getWeapon(warrior *enemy)
 
 HQ::HQ(int type, int element):
     element(element),
-    commonProperties(type, typeName[type])
+    CommonProperties(type, typeName[type])
 {}
 
 HQ::~HQ()
 {
-    for (int i = 0; i < warriorCount; i++)
-        delete warriors[i];
+    for (int i = 0; i <= n + 1; i++)
+        if (City::cities[i].warriors[0][type])
+            delete City::cities[i].warriors[0][type];
 }
 
 int HQ::mapWarriorType(int currentWarriorType)
@@ -512,7 +492,7 @@ void HQ::produce()
 {
     int mappedWarriorType = mapWarriorType(currentWarriorType);
     if (stop)
-        if (element < warrior::typeElement[mappedWarriorType])
+        if (element < Warrior::typeElement[mappedWarriorType])
             return;
         else
             stop = 0;
@@ -521,12 +501,12 @@ void HQ::produce()
         currentWarriorType = (currentWarriorType + 1) % 5;
         mappedWarriorType = mapWarriorType(currentWarriorType);
     }
-    if (element < warrior::typeElement[mappedWarriorType])
+    if (element < Warrior::typeElement[mappedWarriorType])
     {
         stop = 1;
         return;
     }
-    element -= warrior::typeElement[mappedWarriorType];
+    element -= Warrior::typeElement[mappedWarriorType];
     switch (mappedWarriorType)
     {
         case 0:currentWarrior = new dragon(warriorCount + 1, this);break;
@@ -535,7 +515,7 @@ void HQ::produce()
         case 3:currentWarrior = new lion(warriorCount + 1, this);break;
         case 4:currentWarrior = new wolf(warriorCount + 1, this);break;
     }
-    warriors[warriorCount] = currentWarrior;
+    City::cities[currentWarrior->location].warriors[0][type] = currentWarrior;
     printf("%03d:00 %s %s %d born\n", hour, getName(), currentWarrior->getName(), currentWarrior->id);
     ++warriorTypeCount[mappedWarriorType];
     if (mappedWarriorType == 0)
@@ -546,59 +526,58 @@ void HQ::produce()
     return;
 }
 
-warrior* HQ::locateWarrior(int location)
+Warrior* HQ::locateWarrior(int location)
 {
-    if (type == 0)
-    {
-        for (int i = 0; i < warriorCount; i++)
-            if (warriors[i] && warriors[i]->location == location)
-                return warriors[i];
-    }
-    else
-    {
-        for (int i = warriorCount - 1; i >= 0; i--)
-            if (warriors[i] && warriors[i]->location == location)
-                return warriors[i];
-    }
-    return NULL;
+    return City::cities[location].warriors[0][type];
 }
 
 void HQ::deleteWarrior(int location)
 {
-    for (int i = 0; i < warriorCount; i++)
-        if (warriors[i] && warriors[i]->location == location)
-        {
-            delete warriors[i];
-            warriors[i] = NULL;
-        }
+    delete City::cities[location].warriors[0][type];
+    City::cities[location].warriors[0][type] = NULL;
+}
+
+City::City(int id):
+    id(id)
+{}
+
+void City::MoveFinished()
+{
+    for (auto &&i: cities)
+    {
+        memcpy(i.warriors[0], i.warriors[1], sizeof(i.warriors[1]));
+        if (i.id != 0 && i.id != n + 1)
+            memset(i.warriors[1], 0 ,sizeof(i.warriors[0]));
+    }
 }
 
 constexpr char dragon::typeName[maxNameLen + 1], ninja::typeName[maxNameLen + 1], iceman::typeName[maxNameLen + 1], lion::typeName[maxNameLen + 1], wolf::typeName[maxNameLen + 1];
 constexpr char HQ::typeName[HQType][maxNameLen + 1];
 constexpr int HQ::warriorTypeMap[HQType][warriorType];
-int warrior::typeElement[warriorType], warrior::typeForce[warriorType];
+int Warrior::typeElement[warriorType], Warrior::typeForce[warriorType];
+std::vector<City> City::cities;
 
 int main()
 {
     //freopen("x.in", "r", stdin);
     //freopen("x.out", "w", stdout);
 	int caseCnt, m, t;
-    warrior *w1, *w2;
+    Warrior *w1, *w2;
     scanf("%d", &caseCnt);
     for (int i = 0; i < caseCnt; i++)
     {
         printf("Case %d:\n", i + 1);
         scanf("%d%d%d%d%d", &m, &n, &r, &k, &t);
         for (int i = 0; i < 5; i++)
-            scanf("%d", &warrior::typeElement[i]);
+            scanf("%d", &Warrior::typeElement[i]);
         for (int i = 0; i < 5; i++)
-            scanf("%d", &warrior::typeForce[i]);
+            scanf("%d", &Warrior::typeForce[i]);
         HQ x1(0, m), x2(1, m);
+        HQCaptured = 0;
         hour = 0;
-        flag[0] = 0, flag[1] = 0;
-        memset(cityFlags, 0, sizeof(cityFlags));
-        memset(lastBattleResult, 0, sizeof(lastBattleResult));
-        memset(cityElement, 0, sizeof(cityElement));
+        City::cities.clear();
+        for (int i = 0; i <= n + 1; i++)
+            City::cities.push_back(City(i));
         while (1)
         {
             if (hour * 60 > t)
@@ -633,12 +612,13 @@ int main()
             w1 = x1.locateWarrior(n);
             if (w1 && w1->lastMove != hour)
                 w1->advance(), w1->printLocation();
-            if (flag[0] == 2 || flag[1] == 2)
+            City::MoveFinished();
+            if (HQCaptured)
                 break;
             if (hour * 60 + 20 > t)
                 break;
             for (int i = 1; i <= n; i++)
-                cityElement[i] += 10;
+                City::cities[i].element += 10;
             if (hour * 60 + 30 > t)
                 break;
             for (int i = 1; i <= n; i++)
@@ -646,9 +626,9 @@ int main()
                 w1 = x1.locateWarrior(i);
                 w2 = x2.locateWarrior(i);
                 if (w1 && !w2)
-                    x1.element += cityElement[i], printf("%03d:30 %s earned %d elements for his headquarter\n", hour, w1->info, cityElement[i]), cityElement[i] = 0;
+                    x1.element += City::cities[i].element, printf("%03d:30 %s earned %d elements for his headquarter\n", hour, w1->info, City::cities[i].element), City::cities[i].element = 0;
                 if (!w1 && w2)
-                    x2.element += cityElement[i], printf("%03d:30 %s earned %d elements for his headquarter\n", hour, w2->info, cityElement[i]), cityElement[i] = 0;
+                    x2.element += City::cities[i].element, printf("%03d:30 %s earned %d elements for his headquarter\n", hour, w2->info, City::cities[i].element), City::cities[i].element = 0;
             }
             if (hour * 60 + 35 > t)
                 break;
@@ -667,8 +647,8 @@ int main()
             {
                 w1 = x1.locateWarrior(i), w2 = x2.locateWarrior(i);
                 if (w1 && w2)
-                    if (cityFlags[i])
-                        if (cityFlags[i] == 1)
+                    if (City::cities[i].flag)
+                        if (City::cities[i].flag == 1)
                             w1->bomb(w2);
                         else
                             w2->bomb(w1);
@@ -686,8 +666,8 @@ int main()
                 w2 = x2.locateWarrior(i);
                 if (w1 && w2)
                 {
-                    if (cityFlags[i])
-                        if (cityFlags[i] == 1)
+                    if (City::cities[i].flag)
+                        if (City::cities[i].flag == 1)
                             w1->battle(w2);
                         else
                             w2->battle(w1);
@@ -714,9 +694,8 @@ int main()
             x2.element += x2.collectedElements;
             x1.collectedElements = 0;
             x2.collectedElements = 0;
-            //std::sort(battleInfo.begin(), battleInfo.end(), cmp);
             for (auto i: battleInfo)
-                printf("%s", i.info.c_str());
+                printf("%s", i.c_str());
             battleInfo.clear();
             if (hour * 60 + 50 > t)
                 break;
