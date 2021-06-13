@@ -42,7 +42,7 @@ int main(void)
                 }
             }
         };
-        memset(mark, 0 ,sizeof(mark));
+        memset(mark, 0, sizeof(mark));
         for (int i = 0; i < n; i++)
         {
             if (a[i][0])
