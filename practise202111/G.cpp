@@ -19,11 +19,6 @@ int main(void)
             f[i][i - 1] = 0;
         for (int i = 0; i < n; i++)
             f[i][i] = 1;
-        /*for (int i = 0; i < n - 1; i++)
-            if (a[i] == a[i + 1])
-                f[i][i + 1] = 1;
-            else
-                f[i][i + 1] = 2;*/
         for (int i = 1; i < n; i++)
             for (int j = 0; j < n - i; j++)
                 for (int k = 0; k < i; k++)
@@ -31,12 +26,6 @@ int main(void)
                         f[j][j + i] = std::min(f[j][j + i], f[j][j + k] + f[j + k + 1][j + i - 1]);
                     else
                         f[j][j + i] = std::min(f[j][j + i], f[j][j + k] + f[j + k + 1][j + i]);
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = i; j < n; j++)
-                printf("%d ", f[i][j]);
-            printf("\n");
-        }
-        printf("Case #%d: %d\n", cnt, f[0][n - 1]);
+        printf("Case %d: %d\n", cnt, f[0][n - 1]);
     }
 }
