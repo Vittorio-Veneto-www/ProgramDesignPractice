@@ -28,7 +28,7 @@ class CLion;
 class CWolf;
 class CHQ;
 class CCity;
-class CKindom;
+class CKingdom;
 
 class CCommonProperties
 {
@@ -133,7 +133,7 @@ class CCity
         static std::vector<CCity> cities;
         static void MoveFinished();
 };
-class CKindom
+class CKingdom
 {
     public:
         static int m, t;
@@ -561,7 +561,7 @@ void CCity::MoveFinished()
     }
 }
 
-void CKindom::init()
+void CKingdom::init()
 {
     scanf("%d%d%d%d%d", &m, &n, &r, &k, &t);
     for (int i = 0; i < 5; i++)
@@ -576,7 +576,7 @@ void CKindom::init()
     battleInfo.clear();
 }
 
-void CKindom::run()
+void CKingdom::run()
 {
     CWarrior *w1, *w2;
     CHQ x1(0, m), x2(1, m);
@@ -722,7 +722,7 @@ void CKindom::run()
     }
 }
 
-void CKindom::print()
+void CKingdom::print()
 {
     for (auto i: battleInfo)
         printf("%s", i.c_str());
@@ -731,7 +731,7 @@ void CKindom::print()
 constexpr char CDragon::typeName[maxNameLen + 1], CNinja::typeName[maxNameLen + 1], CIceman::typeName[maxNameLen + 1], CLion::typeName[maxNameLen + 1], CWolf::typeName[maxNameLen + 1];
 constexpr char CHQ::typeName[HQType][maxNameLen + 1];
 constexpr int CHQ::warriorTypeMap[HQType][warriorType];
-int CWarrior::typeElement[warriorType], CWarrior::typeForce[warriorType], CKindom::m, CKindom::t;
+int CWarrior::typeElement[warriorType], CWarrior::typeForce[warriorType], CKingdom::m, CKingdom::t;
 std::vector<CCity> CCity::cities;
 
 int main()
@@ -741,8 +741,8 @@ int main()
     for (int i = 0; i < caseCnt; i++)
     {
         printf("Case %d:\n", i + 1);
-        CKindom::init();
-        CKindom::run();
-        CKindom::print();
+        CKingdom::init();
+        CKingdom::run();
+        CKingdom::print();
     }
 }
